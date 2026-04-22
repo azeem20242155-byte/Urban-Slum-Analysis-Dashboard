@@ -1,4 +1,4 @@
-# Sustainability Dashboard (5DATA004C)
+# Urban Slum Analysis Dashboard
 
 This project is developed as part of the Data Science Project Lifecycle coursework.
 
