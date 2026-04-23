@@ -51,7 +51,7 @@ The categories include:
 - Housing deterioration  
 - Low growth / mixed outcome  
 
-Interactive features such as filters, sorting options, and hover information are included to improve usability.
+Interactive features such as filters, sorting options and hover information are included to improve usability.
 
 
 ## Methodology
