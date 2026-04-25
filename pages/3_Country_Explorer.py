@@ -4,10 +4,12 @@ import plotly.express as px
 
 st.title("Country Explorer")
 
+# Load cleaned dataset
 df = pd.read_csv("data_processed/final_dataset.csv")
 
 
 # Country + Year Selection
+# This allows the user to select one country and control the time period shown
 
 countries = sorted(df["country"].unique())
 selected_country = st.selectbox("Select a country", countries)
@@ -29,7 +31,9 @@ country_df = country_df[
     (country_df["year"] <= years[1])
 ].copy()
 
+
 # Global comparison
+# I calculate the global average slum share so the selected country can be compared against it
 
 global_trend = df.groupby("year").agg({
     "slum_pct": "mean",
@@ -41,6 +45,10 @@ country_df = country_df.merge(
     on="year",
     suffixes=("", "_global")
 )
+
+
+# Start and end values for the selected period
+# These are used for the KPI cards and interpretation
 
 latest = country_df.iloc[-1]
 first = country_df.iloc[0]
@@ -55,11 +63,12 @@ slum_population_change_total = latest["slum_population"] - first["slum_populatio
 st.markdown(f"""
 ### Country profile: {selected_country}
 
-This page analyses how **urban population growth** and **slum conditions** have evolved over time.
+This page analyses how **urban population growth** and **slum conditions** have evolved over time for a selected country.
 """)
 
 
 # Metrics
+# These show the main country-level indicators for the selected time range
 
 c1, c2, c3 = st.columns(3)
 
@@ -80,22 +89,23 @@ with c2:
 
 with c3:
     st.metric(
-        "Change in slum population",
+        "Change in estimated slum population",
         f"{slum_population_change_total:,.0f}"
     )
 
 
-# Explanation
+# Explanation box
 
 st.info("""
 **How to read this page:**
-- Slum share indicates housing conditions
-- Urban population shows growth pressure
-- Slum population reflects real human impact
+- Slum share shows the proportion of urban residents living in slum conditions
+- Urban population shows the level of growth pressure
+- Estimated slum population shows the real number of people affected
 """)
 
 
 # Trends
+# Three charts are used because percentage share, urban population and estimated slum population tell different parts of the story
 
 st.markdown("### Trends over time")
 
@@ -104,7 +114,11 @@ fig1 = px.line(
     x="year",
     y="slum_pct",
     markers=True,
-    title=f"Slum Share vs Global Average – {selected_country}"
+    title=f"Slum Share vs Global Average – {selected_country}",
+    labels={
+        "year": "Year",
+        "slum_pct": "Slum Share (%)"
+    }
 )
 
 fig1.add_scatter(
@@ -115,33 +129,67 @@ fig1.add_scatter(
     line=dict(dash="dash")
 )
 
-fig1.update_layout(template="plotly_white", hovermode="x unified")
+fig1.update_layout(
+    template="plotly_white",
+    hovermode="x unified",
+    yaxis_title="Slum Share (%)",
+    xaxis_title="Year"
+)
+
+fig1.update_xaxes(tickformat="d")
+
 
 fig2 = px.line(
     country_df,
     x="year",
     y="urban_pop",
     markers=True,
-    title=f"Urban Population Over Time – {selected_country}"
+    title=f"Urban Population Over Time – {selected_country}",
+    labels={
+        "year": "Year",
+        "urban_pop": "Urban Population"
+    }
 )
 
-fig2.update_layout(template="plotly_white", hovermode="x unified")
+fig2.update_layout(
+    template="plotly_white",
+    hovermode="x unified",
+    yaxis_title="Urban Population",
+    xaxis_title="Year"
+)
+
+fig2.update_xaxes(tickformat="d")
+
 
 fig3 = px.line(
     country_df,
     x="year",
     y="slum_population",
     markers=True,
-    title=f"Estimated Slum Population Over Time – {selected_country}"
+    title=f"Estimated Slum Population Over Time – {selected_country}",
+    labels={
+        "year": "Year",
+        "slum_population": "Estimated Slum Population"
+    }
 )
 
-fig3.update_layout(template="plotly_white", hovermode="x unified")
+fig3.update_layout(
+    template="plotly_white",
+    hovermode="x unified",
+    yaxis_title="Estimated Slum Population",
+    xaxis_title="Year"
+)
+
+fig3.update_xaxes(tickformat="d")
+
 
 st.plotly_chart(fig1, use_container_width=True)
 st.plotly_chart(fig2, use_container_width=True)
 st.plotly_chart(fig3, use_container_width=True)
 
+
 # Classification
+# This gives a simple interpretation of whether urban growth is linked with improvement or pressure
 
 if urban_growth_total > 0 and slum_change_total < 0:
     category = "Improving urbanisation"
@@ -153,7 +201,8 @@ else:
     category = "Weak development pattern"
     st.error(f"{selected_country} → Weak development pattern")
 
-# Key Insight 
+
+# Key Insight
 
 st.markdown("### Key Insight")
 
@@ -170,7 +219,9 @@ This indicates that urban growth in **{selected_country}** is **{"not translatin
 """
 )
 
+
 # Rankings
+# This compares the selected country with all other countries in the dataset
 
 summary = df[[
     "country",
@@ -191,18 +242,6 @@ st.info(
 - **Urban growth rank:** {int(country_rank['rank_growth'].values[0])} / {len(rank_df)}
 - **Slum improvement rank:** {int(country_rank['rank_slum'].values[0])} / {len(rank_df)}
 
-Lower slum rank = better improvement performance.
+Lower slum improvement rank means stronger improvement in slum share compared with other countries.
 """
 )
-
-# Data Table
-
-with st.expander("View country data table"):
-    st.dataframe(
-        country_df[["year", "slum_pct", "urban_pop", "slum_population"]].style.format({
-            "slum_pct": "{:.1f}%",
-            "urban_pop": "{:,.0f}",
-            "slum_population": "{:,.0f}"
-        }),
-        use_container_width=True
-    )

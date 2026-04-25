@@ -35,4 +35,3 @@ with col2:
 with col3:
     st.metric("Rows", len(df))
 
-st.info("Use the sidebar to open each analysis page.")

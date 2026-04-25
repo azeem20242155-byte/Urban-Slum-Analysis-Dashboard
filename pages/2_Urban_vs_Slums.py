@@ -4,6 +4,7 @@ import plotly.express as px
 
 st.title("Urbanisation vs Slums")
 
+# Load cleaned dataset
 df = pd.read_csv("data_processed/final_dataset.csv")
 
 # Keep one row per country for the scatter plot
@@ -15,7 +16,7 @@ summary = df[[
     "slum_population_change_total"
 ]].drop_duplicates()
 
-# Remove missing values just in case
+# Remove missing values to avoid plotting errors
 summary = summary.dropna(subset=[
     "urban_growth_total",
     "slum_change_total",
@@ -24,29 +25,46 @@ summary = summary.dropna(subset=[
 
 st.markdown("""
 ### What this page shows
-This view compares **urban population growth** with **change in slum share**.
 
-It helps identify whether countries are:
+This page compares **urban population growth** with the **change in slum share**.
+
+The purpose is to identify whether countries are:
 - urbanising while improving housing conditions, or
 - urbanising while slum conditions are worsening
 """)
 
 st.info("""
 **How to read this chart:**
-- **Right side** = strong urban population growth
-- **Above zero** = slum share increased
-- **Below zero** = slum share decreased
 
-Countries in the **bottom-right area** may represent more successful urbanisation,
-while countries in the **top-right area** may be facing growing housing pressure.
+- Right side = stronger urban population growth
+- Above zero = slum share increased
+- Below zero = slum share decreased
+- Larger bubbles = larger change in estimated slum population
+
+The bottom-right area represents countries that grew urban populations while reducing slum share.
+The top-right area represents countries where urban growth was linked with worsening slum conditions.
 """)
 
-# Cap extreme values so the chart is easier to read
+# Cap extreme urban growth values so the chart is easier to read
 summary["urban_growth_capped"] = summary["urban_growth_total"].clip(upper=300)
 
 # Bubble size must always be positive
 summary["bubble_size"] = summary["slum_population_change_total"].abs()
 
+# Create a simple category for clearer colour interpretation
+def classify_pattern(row):
+    if row["urban_growth_total"] > 0 and row["slum_change_total"] < 0:
+        return "Improving with growth"
+    elif row["urban_growth_total"] > 0 and row["slum_change_total"] > 0:
+        return "Growth with pressure"
+    elif row["urban_growth_total"] <= 0 and row["slum_change_total"] > 0:
+        return "Low growth + worsening"
+    else:
+        return "Low growth + improving"
+
+summary["pattern"] = summary.apply(classify_pattern, axis=1)
+
+# Main scatter chart
 fig = px.scatter(
     summary,
     x="urban_growth_capped",
@@ -57,68 +75,53 @@ fig = px.scatter(
         "slum_change_total": ":.1f",
         "slum_population_change_total": ":,.0f",
         "urban_growth_capped": False,
-        "bubble_size": False
+        "bubble_size": False,
+        "pattern": True
     },
     size="bubble_size",
-    color="slum_population_change_total",
-    labels={
-        "urban_growth_capped": "Urban population growth (%)",
-        "slum_change_total": "Change in slum share (percentage points)",
-        "bubble_size": "Absolute change in slum population",
-        "slum_population_change_total": "Change in slum population"
+    color="pattern",
+    color_discrete_map={
+        "Improving with growth": "#2E8B57",
+        "Growth with pressure": "#FF4B4B",
+        "Low growth + worsening": "#8B0000",
+        "Low growth + improving": "#87CEEB"
     },
-    title="Urbanisation vs Slum Conditions: Country-Level Patterns (2000–2022)"
+    labels={
+        "urban_growth_capped": "Urban Population Growth (%)",
+        "slum_change_total": "Change in Slum Share (percentage points)",
+        "slum_population_change_total": "Change in Estimated Slum Population",
+        "pattern": "Urbanisation Pattern"
+    },
+    title="Urban Growth vs Change in Slum Share"
 )
 
+# Add reference lines to create four clear quadrants
 fig.add_hline(y=0, line_dash="dash")
 fig.add_vline(x=0, line_dash="dash")
 
 # Add quadrant labels
-fig.add_annotation(x=220, y=50, text="High growth + worsening slums", showarrow=False)
-fig.add_annotation(x=220, y=-50, text="High growth + improving slums", showarrow=False)
+fig.add_annotation(x=220, y=50, text="High growth + worsening", showarrow=False)
+fig.add_annotation(x=220, y=-50, text="High growth + improving", showarrow=False)
 fig.add_annotation(x=20, y=50, text="Low growth + worsening", showarrow=False)
 fig.add_annotation(x=20, y=-50, text="Low growth + improving", showarrow=False)
 
+# Improved the chart formatting for better readability
+fig.update_layout(
+    template="plotly_white",
+    hovermode="closest",
+    legend_title_text="Urbanisation Pattern"
+)
+
+fig.update_xaxes(range=[0, 300], title="Urban Population Growth (%)")
+fig.update_yaxes(range=[-80, 80], title="Change in Slum Share (percentage points)")
 
 st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("Country comparison table")
-
-sort_option = st.selectbox(
-    "Sort countries by",
-    [
-        "Urban growth (highest first)",
-        "Slum change (highest first)",
-        "Slum change (lowest first)"
-    ]
-)
-
-if sort_option == "Urban growth (highest first)":
-    table = summary.sort_values("urban_growth_total", ascending=False)
-elif sort_option == "Slum change (highest first)":
-    table = summary.sort_values("slum_change_total", ascending=False)
-else:
-    table = summary.sort_values("slum_change_total", ascending=True)
-
-table_df = table[[
-    "country",
-    "urban_growth_total",
-    "slum_change_total",
-    "slum_population_change_total"
-]].copy()
-
-st.dataframe(
-    table_df.style.format({
-        "urban_growth_total": "{:.1f}%",
-        "slum_change_total": "{:.1f} pp",
-        "slum_population_change_total": "{:,.0f}"
-    }),
-    use_container_width=True
-)
-
+# Key insight calculation
 best_zone = summary[
     (summary["urban_growth_total"] > 0) & (summary["slum_change_total"] < 0)
 ]
+
 worst_zone = summary[
     (summary["urban_growth_total"] > 0) & (summary["slum_change_total"] > 0)
 ]
