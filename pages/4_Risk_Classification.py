@@ -65,7 +65,6 @@ summary["urban_growth_capped"] = summary["urban_growth_total"].clip(upper=300)
 # Intro
 
 st.markdown("""
-### What this page shows
 
 This page groups countries into **urban development risk categories** using:
 

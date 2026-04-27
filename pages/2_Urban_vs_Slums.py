@@ -24,7 +24,6 @@ summary = summary.dropna(subset=[
 ])
 
 st.markdown("""
-### What this page shows
 
 This page compares **urban population growth** with the **change in slum share**.
 
@@ -34,8 +33,6 @@ The purpose is to identify whether countries are:
 """)
 
 st.info("""
-**How to read this chart:**
-
 - Right side = stronger urban population growth
 - Above zero = slum share increased
 - Below zero = slum share decreased

@@ -19,12 +19,18 @@ country_df = df[df["country"] == selected_country].sort_values("year").copy()
 year_min = int(country_df["year"].min())
 year_max = int(country_df["year"].max())
 
-years = st.slider(
-    "Select year range",
-    year_min,
-    year_max,
-    (year_min, year_max)
-)
+# Some countries only have one year of available data.
+# In that case, a range slider cannot be used, so I keep the single year automatically.
+if year_min == year_max:
+    st.info(f"Only one year of data is available for {selected_country}: {year_min}.")
+    years = (year_min, year_max)
+else:
+    years = st.slider(
+        "Select year range",
+        year_min,
+        year_max,
+        (year_min, year_max)
+    )
 
 country_df = country_df[
     (country_df["year"] >= years[0]) &
@@ -97,7 +103,6 @@ with c3:
 # Explanation box
 
 st.info("""
-**How to read this page:**
 - Slum share shows the proportion of urban residents living in slum conditions
 - Urban population shows the level of growth pressure
 - Estimated slum population shows the real number of people affected
@@ -242,6 +247,5 @@ st.info(
 - **Urban growth rank:** {int(country_rank['rank_growth'].values[0])} / {len(rank_df)}
 - **Slum improvement rank:** {int(country_rank['rank_slum'].values[0])} / {len(rank_df)}
 
-Lower slum improvement rank means stronger improvement in slum share compared with other countries.
 """
 )

@@ -148,7 +148,8 @@ with col2:
     st.plotly_chart(
         fig2,
         use_container_width=True )
-
+st.caption(
+    "The sharp rise in 2022 is due to wider country coverage. 2020 total does not include China’s slum estimate, but 2022 does. Because China has a huge urban population, once its included the global total jumps sharply. This is why the dashboard compares both percentage trends and absolute population estimates.")
 
 
 #WORLD MAP
